@@ -1,24 +1,40 @@
 const noble = require('@abandonware/noble');
 
+const printedIDs = new Set();
+
+// CHANGE THIS to your phone's name
+const YOUR_PHONE_NAME = "is this the kosher meal?";
+
 function startBLEScan(onDeviceFound) {
-  noble.on('stateChange', async (state) => {
+  noble.on('stateChange', (state) => {
     if (state === 'poweredOn') {
-      console.log('BLE powered on. Scanning...');
-      noble.startScanning([], true); // [] = all services, true = duplicates allowed
+      console.log("BLE powered on. Scanning only for YOUR PHONE...");
+      noble.startScanning([], true);
     } else {
       noble.stopScanning();
     }
   });
 
   noble.on('discover', (peripheral) => {
-    const { localName } = peripheral.advertisement;
+    const name = peripheral.advertisement.localName;
 
-    onDeviceFound({
+    // Ignore ALL devices except your phone
+    if (name !== YOUR_PHONE_NAME) return;
+
+    const device = {
       id: peripheral.id,
-      name: localName,
+      name,
       rssi: peripheral.rssi,
-      address: peripheral.address,
-    });
+    };
+
+    // Only print ONCE per rotated BLE ID
+    if (!printedIDs.has(peripheral.id)) {
+      printedIDs.add(peripheral.id);
+      console.log("📱 YOUR PHONE:", device);
+    }
+
+    // Still send updates to the system
+    onDeviceFound(device);
   });
 }
 
